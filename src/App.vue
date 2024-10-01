@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useStore } from './store.ts'
-import {GoogleGenerativeAI, HarmBlockThreshold, HarmCategory} from "@google/generative-ai";
+import {
+  GoogleGenerativeAI,
+  HarmBlockThreshold,
+  HarmCategory
+} from "@google/generative-ai";
 import { storeToRefs } from "pinia";
+
+import VueMarkdown from 'vue-markdown-render'
 
 const store = useStore()
 
@@ -23,6 +29,8 @@ const text = ref("")
 
 const { settings } = storeToRefs(store)
 
+const isErrorDialogOpen = ref(false)
+const errorMessage = ref("No error. Why did this appear?")
 
 const target = ref('')
 const promptTokens = ref(0)
@@ -76,6 +84,10 @@ function dismiss() {
   isAPIKeyDialogOpen.value = false
 }
 
+function dismissError() {
+  isErrorDialogOpen.value = false
+}
+
 async function doTranslation() {
 
   window.scrollTo({
@@ -116,17 +128,25 @@ async function doTranslation() {
 
   const prompt = JSON.stringify(trr.value)
 
-  const result = await model.generateContentStream(prompt)
+  try {
+    const result = await model.generateContentStream(prompt)
 
-  for await (const chunk of result.stream) {
-    console.log(JSON.parse(JSON.stringify(chunk)))
-    const chunkText = chunk.text();
-    target.value += chunkText
-    promptTokens.value = chunk.usageMetadata?.promptTokenCount || 0
-    completionTokens.value = chunk.usageMetadata?.candidatesTokenCount || 0
-    totalTokens.value = chunk.usageMetadata?.totalTokenCount || 0
+    for await (const chunk of result.stream) {
+      console.log(JSON.parse(JSON.stringify(chunk)))
+      const chunkText = chunk.text();
+      target.value += chunkText
+      promptTokens.value = chunk.usageMetadata?.promptTokenCount || 0
+      completionTokens.value = chunk.usageMetadata?.candidatesTokenCount || 0
+      totalTokens.value = chunk.usageMetadata?.totalTokenCount || 0
+    }
+
+  } catch (err: any) {
+    console.log(err)
+    errorMessage.value = err.message
+    isErrorDialogOpen.value = true
+    isInTranslationView.value = false
   }
-
+  
 
 }
 
@@ -153,13 +173,13 @@ async function doTranslation() {
     <div class="flex-auto">
       <FloatLabel>
         <InputText id="sourceLanguageField" type="text" v-model="sourceLanguage" placeholder="Leave empty to detect language"/>
-        <Label for="sourceLanguageField">Source language</Label>
+        <label for="sourceLanguageField">Source language</label>
       </FloatLabel>
     </div>
     <div class="flex-auto">
       <FloatLabel>
         <InputText id="targetLanguageField" type="text" v-model="targetLanguage"/>
-        <Label for="targetLanguageField">Target language</Label>
+        <label for="targetLanguageField">Target language</label>
       </FloatLabel>
     </div>
 
@@ -181,10 +201,10 @@ async function doTranslation() {
       </thead>
       <tbody>
       <tr v-for="(verse, vix) in trr.text">
-        <td class="whitespace-pre-wrap pb-5 align-top" >{{verse}}</td>
+        <td class="pb-5 align-top" ><VueMarkdown :source="verse.trim()" /></td>
         <td class="whitespace-pre-wrap pb-5 align-top">
           <span v-if="typeof targetX[vix] === 'undefined' || targetX[vix] == ''"><ProgressSpinner style="width: 25px; height: 25px"  /> Loading</span>
-          <span v-else>{{targetX[vix]}}</span>
+          <span v-else><VueMarkdown :source="targetX[vix].trim()" /></span>
         </td>
       </tr>
       </tbody>
@@ -206,6 +226,17 @@ async function doTranslation() {
       <Button type="button" label="Cancel" severity="secondary" @click="dismiss" v-if="isAPIKeyDialogDismissable"></Button>
       <Button type="button" label="Save" @click="save" :disabled="isSaveButtonDisabled"></Button>
     </div>
+  </Dialog>
+
+  <Dialog v-model:visible="isErrorDialogOpen" modal header="Error" :style="{width: '40rem'}">
+    <span class="block mb-8">
+      {{errorMessage}}
+    </span>
+
+    <div class="flex justify-end gap-2">
+      <Button type="button" label="Cancel" severity="secondary" @click="dismissError"></Button>
+    </div>
+
   </Dialog>
 </template>
 
