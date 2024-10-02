@@ -201,8 +201,8 @@ async function doTranslation() {
       </thead>
       <tbody>
       <tr v-for="(verse, vix) in trr.text">
-        <td class="pb-5 align-top" ><VueMarkdown :source="verse.trim()" /></td>
-        <td class="whitespace-pre-wrap pb-5 align-top">
+        <td class="pb-5 align-top" ><VueMarkdown :source="verse.trim() + '\n'" /></td>
+        <td class="whitespace-pre-wrap pb-1 align-top">
           <span v-if="typeof targetX[vix] === 'undefined' || targetX[vix] == ''"><ProgressSpinner style="width: 25px; height: 25px"  /> Loading</span>
           <span v-else><VueMarkdown :source="targetX[vix].trim()" /></span>
         </td>
