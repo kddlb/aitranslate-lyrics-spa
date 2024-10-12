@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useStore } from './store.ts'
-import {
-  GoogleGenerativeAI,
-  HarmBlockThreshold,
-  HarmCategory
-} from "@google/generative-ai";
-import { storeToRefs } from "pinia";
+import OpenAI from 'openai'
+import { storeToRefs } from "pinia"
 
 import VueMarkdown from 'vue-markdown-render'
 
@@ -33,27 +29,32 @@ const isErrorDialogOpen = ref(false)
 const errorMessage = ref("No error. Why did this appear?")
 
 const target = ref('')
-const promptTokens = ref(0)
-const completionTokens = ref(0)
-const totalTokens = ref(0)
 
-const models = [
+const models: {
+  id: string,
+  label: string
+}[] = [
   {
-    id: "gemini-1.5-flash",
-    label: "Gemini 1.5 Flash"
-  },
-    {
-    id: "gemini-1.5-pro",
-    label: "Gemini 1.5 Pro"
-  },
-  {
-    id: "gemini-1.5-flash-002",
-    label: "Gemini 1.5 Flash 002"
+    id: "gpt-4o",
+    label: "GPT 4o"
   },
   {
-    id: "gemini-1.5-pro-002",
-    label: "Gemini 1.5 Pro 002"
-  }
+    id: "gpt-4o-mini",
+    label: "GPT 4o Mini"
+  },
+  {
+    id: "gpt-4-turbo",
+    label: "GPT 4 Turbo"
+  },
+  {
+    id: "gpt-4",
+    label: "GPT 4"
+  },
+  {
+    id: "gpt-3.5-turbo",
+    label: "GPT 3.5 Turbo"
+   }
+
 ]
 
 const trr = computed(() => ({
@@ -65,7 +66,7 @@ const trr = computed(() => ({
 const targetX = computed(() => target.value.split(/\n\s*\n/))
 
 
-if (store.settings.apiKey == '') {
+if (store.settings.apiKey == '' || store.settings.model.includes('gemini')) {
   isAPIKeyDialogOpen.value = true
   isAPIKeyDialogDismissable.value = false
 } else {
@@ -97,56 +98,35 @@ async function doTranslation() {
 
   isInTranslationView.value = true
   target.value = ''
-  promptTokens.value = 0
-  completionTokens.value = 0
-  totalTokens.value = 0
 
-
-  const genAI = new GoogleGenerativeAI(store.settings.apiKey)
-  const model = genAI.getGenerativeModel({
-    model: store.settings.model,
-    systemInstruction: "Translate these song lyrics. Only output the lyrics. Preserve paragraph breaks.",
-    safetySettings: [
-      {
-        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      }
-    ]
+  const openAI = new OpenAI({
+    apiKey: store.settings.apiKey,
+    dangerouslyAllowBrowser: true /* the API key is only sent to OpenAI */
   })
 
-  const prompt = JSON.stringify(trr.value)
-
   try {
-    const result = await model.generateContentStream(prompt)
+    const stream = await openAI.chat.completions.create({
+      model: store.settings.model,
+      messages: [
+        {role: "system", content: "Translate these song lyrics. Only output the lyrics."},
+        {role: "user", content: JSON.stringify(trr.value)}
+      ],
+      stream: true
+    })
 
-    for await (const chunk of result.stream) {
+    for await (const chunk of stream) {
       console.log(JSON.parse(JSON.stringify(chunk)))
-      const chunkText = chunk.text();
+      const chunkText = chunk.choices[0]?.delta.content || ""
       target.value += chunkText
-      promptTokens.value = chunk.usageMetadata?.promptTokenCount || 0
-      completionTokens.value = chunk.usageMetadata?.candidatesTokenCount || 0
-      totalTokens.value = chunk.usageMetadata?.totalTokenCount || 0
     }
-
-  } catch (err: any) {
+  } catch(err: any) {
     console.log(err)
     errorMessage.value = err.message
     isErrorDialogOpen.value = true
     isInTranslationView.value = false
+
   }
-  
+ 
 
 }
 
@@ -192,17 +172,14 @@ async function doTranslation() {
     <table class="relative table-fixed w-full">
       <thead>
       <tr>
-        <th colspan="2" class="pb-5 start">Tokens used: {{totalTokens}}</th>
-      </tr>
-      <tr>
-        <th class="text-start" v-tooltip="promptTokens">Original</th>
+        <th class="text-start">Original</th>
         <th class="text-start">Translation</th>
       </tr>
       </thead>
       <tbody>
       <tr v-for="(verse, vix) in trr.text">
         <td class="pb-5 align-top" ><VueMarkdown :source="verse.trim() + '\n'" /></td>
-        <td class="whitespace-pre-wrap pb-1 align-top">
+        <td class="pb-1 align-top">
           <span v-if="typeof targetX[vix] === 'undefined' || targetX[vix] == ''"><ProgressSpinner style="width: 25px; height: 25px"  /> Loading</span>
           <span v-else><VueMarkdown :source="targetX[vix].trim()" /></span>
         </td>
@@ -213,7 +190,7 @@ async function doTranslation() {
 
   <Dialog v-model:visible="isAPIKeyDialogOpen" :closable="isAPIKeyDialogDismissable" modal header="Set API key" :style="{width: '40rem'}">
     <span class="text-surface-500 dark:text-surface-400 block mb-8">Get an API key from the
-      <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-color-emphasis">Google AI Studio</a>.</span>
+      <a href="https://platform.openai.com/api-keys" target="_blank" class="text-color-emphasis">OpenAI dashboard</a>.</span>
     <div class="flex items-center gap-4 mb-4">
       <label for="apiKey" class="font-semibold w-24">API key</label>
       <InputText id="apiKey" v-model="tempAPIKey" class="flex-auto" />
