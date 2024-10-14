@@ -91,13 +91,14 @@ function dismissError() {
 
 async function doTranslation() {
 
+
+  isInTranslationView.value = true
+  target.value = ''
+
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
   })
-
-  isInTranslationView.value = true
-  target.value = ''
 
   const openAI = new OpenAI({
     apiKey: store.settings.apiKey,
@@ -108,7 +109,7 @@ async function doTranslation() {
     const stream = await openAI.chat.completions.create({
       model: store.settings.model,
       messages: [
-        {role: "system", content: "Translate these song lyrics. Only output the lyrics."},
+        {role: "system", content: "Translate these song lyrics. Only output the lyrics as Markdown. Make sure to use surrounding lines for context."},
         {role: "user", content: JSON.stringify(trr.value)}
       ],
       stream: true
