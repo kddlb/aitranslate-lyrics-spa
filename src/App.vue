@@ -109,7 +109,7 @@ async function doTranslation() {
     const stream = await openAI.chat.completions.create({
       model: store.settings.model,
       messages: [
-        {role: "system", content: "Translate these song lyrics. Only output the lyrics as Markdown. Make sure to use surrounding lines for context."},
+        {role: "system", content: "Translate these song lyrics. Only output the lyrics. Make sure to use surrounding lines for context."},
         {role: "user", content: JSON.stringify(trr.value)}
       ],
       stream: true
