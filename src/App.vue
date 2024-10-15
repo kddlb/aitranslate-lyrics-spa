@@ -100,6 +100,10 @@ function dismissError() {
 
 async function doTranslation() {
 
+
+  isInTranslationView.value = true
+  target.value = ''
+
   window.scrollTo({
     top: 0,
     behavior: 'smooth'
