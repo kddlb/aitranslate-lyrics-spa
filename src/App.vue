@@ -1,8 +1,19 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, Ref } from 'vue'
 import { useStore } from './store.ts'
 import OpenAI from 'openai'
 import { storeToRefs } from "pinia"
+
+import { zodResponseFormat } from 'openai/helpers/zod'
+import { z } from 'zod'
+
+import { JSONParser } from '@streamparser/json'
+
+const trrObject = z.object({
+  sourceLanguage: z.string(),
+  targetLanguage: z.string(),
+  text: z.array(z.string())
+})
 
 import VueMarkdown from 'vue-markdown-render'
 
@@ -41,21 +52,20 @@ const models: {
   {
     id: "gpt-4o-mini",
     label: "GPT 4o Mini"
-  },
-  {
-    id: "gpt-4-turbo",
-    label: "GPT 4 Turbo"
-  },
-  {
-    id: "gpt-4",
-    label: "GPT 4"
-  },
-  {
-    id: "gpt-3.5-turbo",
-    label: "GPT 3.5 Turbo"
-   }
-
+  }
 ]
+
+type TranslationRequestAndResponse = {
+  sourceLanguage: string,
+  targetLanguage: string,
+  text: string[]
+}
+
+const trrResult : Ref<TranslationRequestAndResponse> = ref({
+  sourceLanguage: "",
+  targetLanguage: "",
+  text: []
+})
 
 const trr = computed(() => ({
   sourceLanguage: sourceLanguage.value,
@@ -63,10 +73,9 @@ const trr = computed(() => ({
   text: text.value.split(/\n\s*\n/)
 }))
 
-const targetX = computed(() => target.value.split(/\n\s*\n/))
+//const targetX = computed(() => target.value.split(/\n\s*\n/))
 
-
-if (store.settings.apiKey == '' || store.settings.model.includes('gemini')) {
+if (store.settings.apiKey == '' || store.settings.model.includes('gemini') || !store.settings.model.includes("gpt-4")) {
   isAPIKeyDialogOpen.value = true
   isAPIKeyDialogDismissable.value = false
 } else {
@@ -100,25 +109,52 @@ async function doTranslation() {
     behavior: 'smooth'
   })
 
+  isInTranslationView.value = true
+  target.value = ''
+  trrResult.value = {
+    sourceLanguage: "",
+    targetLanguage: "",
+    text: []
+  }
+
   const openAI = new OpenAI({
     apiKey: store.settings.apiKey,
     dangerouslyAllowBrowser: true /* the API key is only sent to OpenAI */
   })
 
   try {
+
+    const parser = new JSONParser()
+    parser.onValue = (parsed) => {
+      console.log(parsed)
+      if (parsed.key == 'sourceLanguage') {
+        trrResult.value.sourceLanguage = parsed.value as string
+      } else if (parsed.key == 'targetLanguage') {
+        trrResult.value.targetLanguage = parsed.value as string
+      } else if (typeof parsed.key == 'number') {
+        trrResult.value.text[parsed.key] = parsed.value as string
+      }
+
+      if (typeof parsed.key == 'undefined') {
+        trrResult.value = parsed.value as TranslationRequestAndResponse
+      }
+    }
+
     const stream = await openAI.chat.completions.create({
       model: store.settings.model,
       messages: [
-        {role: "system", content: "Translate these song lyrics. Only output the lyrics. Make sure to use surrounding lines for context."},
+        {role: "system", content: "Translate these song lyrics. Only output the lyrics. Language should be formatted as 'Language name (country; languageISO code).' One element of text array per paragraph. Output lyrics as Markdown"},
         {role: "user", content: JSON.stringify(trr.value)}
       ],
-      stream: true
+      stream: true,
+      response_format: zodResponseFormat(trrObject, "trr")
     })
 
     for await (const chunk of stream) {
-      console.log(JSON.parse(JSON.stringify(chunk)))
+      //console.log(JSON.parse(JSON.stringify(chunk)))
       const chunkText = chunk.choices[0]?.delta.content || ""
       target.value += chunkText
+      parser.write(chunkText)
     }
   } catch(err: any) {
     console.log(err)
@@ -128,7 +164,6 @@ async function doTranslation() {
 
   }
  
-
 }
 
 
@@ -173,16 +208,16 @@ async function doTranslation() {
     <table class="relative table-fixed w-full">
       <thead>
       <tr>
-        <th class="text-start">Original</th>
-        <th class="text-start">Translation</th>
+        <th class="text-start">Original - {{ trrResult.sourceLanguage }}</th>
+        <th class="text-start">Translation - {{ trrResult.targetLanguage }}</th>
       </tr>
       </thead>
       <tbody>
       <tr v-for="(verse, vix) in trr.text">
         <td class="pb-5 align-top" ><VueMarkdown :source="verse.trim() + '\n'" /></td>
         <td class="pb-1 align-top">
-          <span v-if="typeof targetX[vix] === 'undefined' || targetX[vix] == ''"><ProgressSpinner style="width: 25px; height: 25px"  /> Loading</span>
-          <span v-else><VueMarkdown :source="targetX[vix].trim()" /></span>
+          <span v-if="typeof trrResult.text[vix] === 'undefined' || trrResult.text[vix] == ''"><ProgressSpinner style="width: 25px; height: 25px"  /> Loading</span>
+          <span v-else><VueMarkdown :source="trrResult.text[vix].trim()" /></span>
         </td>
       </tr>
       </tbody>
