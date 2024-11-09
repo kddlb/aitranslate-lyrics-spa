@@ -143,26 +143,27 @@ async function doTranslation() {
     const stream = await openAI.chat.completions.create({
       model: store.settings.model,
       messages: [
-        {role: "system", content: `Translate provided song lyrics into the specified language, ensuring dialect accuracy, and format the output as a Markdown text array. Each paragraph in the original lyrics should correspond to one element in the array.
+        {role: "system", content: `Translate provided song lyrics into the specified language, ensuring dialect accuracy, and format the output as an HTML text array. Each paragraph in the original lyrics should correspond to one element in the array.
 
 # Steps
 
 1. Read and understand the provided song lyrics.
 2. Identify the target language and dialect specified.
 3. Translate each paragraph of the lyrics into the specified language and dialect.
-4. Format the translated paragraphs as elements within a Markdown text array.
+4. Format the translated paragraphs as elements within an HTML text array.
 5. Add a header with the language name, country, and language ISO code.
 
 # Output Format
 
-- The output should be in a Markdown-formatted text array.
-- Header format for language details: "Language name (country; languageISO code)"
+- The output should be in an HTML-formatted text array.
+- Header format for language details: "Language name (country; locale ISO code [en_US or es_CL or whatever])".
 - Each element of the array represents a paragraph from the original lyrics.
 
 # Notes
 
 - Ensure to only output the translated lyrics, maintaining paragraph integrity.
-- If the dialect is specified, ensure adherence to it throughout the translation.`},
+- If the dialect is specified, ensure adherence to it throughout the translation.
+- Make sure that the output is formatted as HTML, with <br> tags for line breaks.`},
         {role: "user", content: JSON.stringify(trr.value)}
       ],
       stream: true,
@@ -236,7 +237,7 @@ async function doTranslation() {
         <td class="pb-5 align-top" ><VueMarkdown :source="verse.trim() + '\n'" /></td>
         <td class="pb-1 align-top">
           <span v-if="typeof trrResult.text[vix] === 'undefined' || trrResult.text[vix] == ''"><ProgressSpinner style="width: 25px; height: 25px"  /> Loading</span>
-          <span v-else><VueMarkdown :source="trrResult.text[vix].trim()" /></span>
+          <span v-else><span v-html="trrResult.text[vix].trim()" /></span>
         </td>
       </tr>
       </tbody>
