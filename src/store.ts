@@ -7,7 +7,7 @@ export const useStore = defineStore(STORE_NAME, {
     state: () => ({
         settings: useStorage(STORE_NAME, {
             apiKey: "",
-            model: "gemini-1.5-flash"
+            model: "gpt-4o"
         })
     }),
     actions: {
