@@ -1,6 +1,6 @@
 <script setup lang="js">
 import { ref, computed } from 'vue'
-import { useStore } from './store.ts'
+import { useStore } from './store.js'
 import OpenAI from 'openai'
 import { storeToRefs } from "pinia"
 

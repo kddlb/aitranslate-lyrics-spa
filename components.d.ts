@@ -12,7 +12,6 @@ declare module 'vue' {
     FloatLabel: typeof import('primevue/floatlabel')['default']
     Fluid: typeof import('primevue/fluid')['default']
     InputText: typeof import('primevue/inputtext')['default']
-    ProgressSpinner: typeof import('primevue/progressspinner')['default']
     Select: typeof import('primevue/select')['default']
     Textarea: typeof import('primevue/textarea')['default']
     Toolbar: typeof import('primevue/toolbar')['default']

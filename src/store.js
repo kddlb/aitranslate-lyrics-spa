@@ -11,7 +11,7 @@ export const useStore = defineStore(STORE_NAME, {
         })
     }),
     actions: {
-        setApiKey(apiKey:string) {
+        setApiKey(apiKey) {
             this.settings.apiKey = apiKey
         }
     }
