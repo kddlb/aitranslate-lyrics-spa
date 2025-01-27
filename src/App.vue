@@ -19,6 +19,8 @@ const isTranslateButtonDisabled = computed(() => {
 })
 const isInTranslationView = ref(false)
 
+const isTranslating = ref(false)
+
 const sourceLanguage = ref("")
 const targetLanguage = ref("")
 const text = ref("")
@@ -109,6 +111,7 @@ async function doTranslation() {
 
   try {
 
+    isTranslating.value = true
 
     const stream = await openAI.chat.completions.create({
       model: store.settings.model,
@@ -152,8 +155,16 @@ The output should be a YAML document with the specified structure.
       chks.replace("```yaml", "")
       chks.replace("```", "")
       //console.log(chunkText)
+      if (chunk.choices[0]?.finish_reason === "stop") {
+        isTranslating.value = false
+      }
       try {
-        trrResult.value =  YAML.parse(chks)
+        var parsed = YAML.parse(chks)
+        //if parsed is not an object, ignore 
+        if (typeof parsed !== 'object') {
+          continue
+        }
+        trrResult.value = {...prototypical, ...parsed}
       } catch (err) {
       }
     }
@@ -165,6 +176,22 @@ The output should be a YAML document with the specified structure.
 
   }
  
+}
+
+function clearFields() {
+  sourceLanguage.value = ""
+  targetLanguage.value = ""
+  text.value = ""
+}
+
+function swapLanguages() {
+  const temp = sourceLanguage.value
+  sourceLanguage.value = targetLanguage.value
+  targetLanguage.value = temp
+}
+
+function copyTranslation() {
+  navigator.clipboard.writeText(trrResult.value.text)
 }
 
 
@@ -180,24 +207,28 @@ The output should be a YAML document with the specified structure.
     </template>}
     <template #end>
       <Button v-if="!isInTranslationView" label="Translate" class="me-3" rounded @click="doTranslation" :disabled="isTranslateButtonDisabled" />
-      <Button v-if="!isInTranslationView" icon="pi pi-cog" rounded v-tooltip.left="'Settings'" @click="isAPIKeyDialogOpen = true" />
-
+      <ButtonGroup>
+        <Button v-if="!isInTranslationView" severity="warn" icon="pi pi-times" rounded v-tooltip.bottom="'Clear'" @click="clearFields" />
+        <Button v-if="!isInTranslationView" severity="warn" icon="pi pi-refresh" rounded v-tooltip.bottom="'Swap languages'" @click="swapLanguages" />
+        <Button v-if="!isInTranslationView" severity="warn" icon="pi pi-cog" rounded v-tooltip.left="'Settings'" @click="isAPIKeyDialogOpen = true" />
+        <Button v-if="isInTranslationView" :disabled="isTranslating" severity="warn" icon="pi pi-copy" rounded v-tooltip.bottom="'Copy translation'" @click="copyTranslation" />
+      </ButtonGroup>  
     </template>
   </Toolbar>
   <Fluid v-if="!isInTranslationView">
   <div class="flex p-5 gap-2.5">
 
     <div class="flex-auto">
-      <FloatLabel>
+      <IftaLabel>
         <InputText id="sourceLanguageField" type="text" v-model="sourceLanguage" placeholder="Leave empty to detect language"/>
         <label for="sourceLanguageField">Source language</label>
-      </FloatLabel>
+      </IftaLabel>
     </div>
     <div class="flex-auto">
-      <FloatLabel>
+      <IftaLabel>
         <InputText id="targetLanguageField" type="text" v-model="targetLanguage"/>
         <label for="targetLanguageField">Target language</label>
-      </FloatLabel>
+      </IftaLabel>
     </div>
 
   </div>
@@ -206,16 +237,16 @@ The output should be a YAML document with the specified structure.
     </div>
   </Fluid>
   <div v-else class="p-5">
-    <table class="relative table-fixed w-full">
+    <table class="relative w-full">
       <thead>
       <tr>
-        <th class="text-start">Original - {{ trrResult.sourceLocale.name }}, <code>{{trrResult.sourceLocale.isoCode}}</code></th>
-        <th class="text-start">Translation - {{ trrResult.targetLocale.name }}, <code>{{trrResult.targetLocale.isoCode}}</code></th>
+        <th class="text-start" v-if="trrResult.sourceLocale">Original - {{ trrResult.sourceLocale.name ?? "Unknown" }}, <code>{{trrResult.sourceLocale.isoCode ?? "UNK"}}</code></th>
+        <th class="text-start"  v-if="trrResult.targetLocale">Translation - {{ trrResult.targetLocale.name ?? "Unknown" }}, <code>{{trrResult.targetLocale.isoCode ?? "UNK"}}</code></th>
       </tr>
       </thead>
       <tbody>
 
-      <tr v-for="(line, lineIndex) in (trr.text.split('\n') ?? [])">
+      <tr v-for="(line, lineIndex) in (trr.text.split('\n') ?? [])" v-if="trrResult.text"  class="hover:bg-surface-200 dark:hover:bg-surface-700">
         <td style="vertical-align: top;">
           <span v-if="line === '  '">&nbsp;</span>
           <span v-else>{{line}}</span>
