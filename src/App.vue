@@ -237,7 +237,7 @@ function copyTranslation() {
     </div>
   </Fluid>
   <div v-else class="p-5">
-    <table class="relative w-full">
+    <table class="relative table-fixed w-full">
       <thead>
       <tr>
         <th class="text-start" v-if="trrResult.sourceLocale">Original - {{ trrResult.sourceLocale.name ?? "Unknown" }}, <code>{{trrResult.sourceLocale.isoCode ?? "UNK"}}</code></th>
