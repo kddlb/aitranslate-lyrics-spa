@@ -7,7 +7,9 @@ export const useStore = defineStore(STORE_NAME, {
     state: () => ({
         settings: useStorage(STORE_NAME, {
             apiKey: "",
-            model: "gpt-4o"
+            model: "gpt-4o",
+            reasoning: "medium",
+            rhyme: false
         })
     }),
     actions: {

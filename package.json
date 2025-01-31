@@ -13,7 +13,7 @@
     "@vueuse/core": "^11.3.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.9",
-    "openai": "^4.80.1",
+    "openai": "^4.82.0",
     "pinia": "^2.3.1",
     "postcss": "^8.5.1",
     "primeicons": "^7.0.0",
@@ -32,6 +32,7 @@
     "typescript": "^5.7.3",
     "unplugin-vue-components": "^0.27.5",
     "vite": "^5.4.14",
+    "vite-plugin-vue-devtools": "^7.7.1",
     "vue-tsc": "^2.2.0"
   }
 }

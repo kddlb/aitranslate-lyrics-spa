@@ -14,8 +14,14 @@ declare module 'vue' {
     Fluid: typeof import('primevue/fluid')['default']
     IftaLabel: typeof import('primevue/iftalabel')['default']
     InputText: typeof import('primevue/inputtext')['default']
+    Message: typeof import('primevue/message')['default']
+    ProgressSpinner: typeof import('primevue/progressspinner')['default']
+    RadioButton: typeof import('primevue/radiobutton')['default']
+    RadioButtonGroup: typeof import('primevue/radiobuttongroup')['default']
     Select: typeof import('primevue/select')['default']
     Textarea: typeof import('primevue/textarea')['default']
+    ToggleButton: typeof import('primevue/togglebutton')['default']
+    ToggleSwitch: typeof import('primevue/toggleswitch')['default']
     Toolbar: typeof import('primevue/toolbar')['default']
   }
   export interface ComponentCustomProperties {
