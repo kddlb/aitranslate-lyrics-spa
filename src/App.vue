@@ -133,10 +133,10 @@ async function doTranslation() {
       model: store.settings.model,
       messages: [
         {role: isCurrentModelReasoning ? "developer" : "system",
-          content: `Translate song lyrics from a YAML document and output them in a specified YAML format, ensuring full locale details, ` + (settings.rhyme ? 'rhyming, ' : '' ) + `meaning preservation, and dialect consistency.
+          content: `Translate song lyrics from a YAML document and output them in a specified YAML format, ensuring full locale details, ` + (store.settings.rhyme ? 'rhyming, ' : '' ) + `meaning preservation, and dialect consistency.
 
 - Parse the input YAML to obtain the song lyrics and their relevant metadata.
-- Translate the lyrics into the desired target language` + (settings.rhyme ? ', ensuring that the translated version retains rhyme without losing meaning. ' : '.' ) + `
+- Translate the lyrics into the desired target language` + (store.settings.rhyme ? ', ensuring that the translated version retains rhyme without losing meaning. ' : '.' ) + `
 - Respect and incorporate any existing dialects in both the source and target languages.
 - Construct a YAML document with specified properties: \`sourceLocale\`, \`targetLocale\`, and \`text\`.
 
@@ -144,7 +144,7 @@ async function doTranslation() {
 
 1. **Parse Input**: Extract the song lyrics and locale information from the input YAML document.
 2. **Translate Text**: Translate the extracted lyrics into the target language:
-` + (settings.rhyme ? `   - Ensure the translated version rhymes and preserves the original meaning.` : '') + `
+` + (store.settings.rhyme ? `   - Ensure the translated version rhymes and preserves the original meaning.` : '') + `
    - Respect and incorporate dialect specifics in the translation.
 3. **Construct Output**: Create a YAML document with the following structure:
    - \`sourceLocale\`: Include full locale information with \`isoCode\` and \`name\` of the source language, ensuring language and country specifics.
@@ -157,7 +157,7 @@ The output should be a YAML document with the specified structure.
 
 # Notes
 
-` + (settings.rhyme ? '- Ensure the translated text accurately reflects the original meaning and tone while rhyming.' : '' ) + `
+` + (store.settings.rhyme ? '- Ensure the translated text accurately reflects the original meaning and tone while rhyming.' : '' ) + `
 - Handle special characters and accents appropriately.
 - Maintain consistency with locale information for accuracy, including adherence to the dialect of both the source and target locales.
 - Output as YAML directly, without Markdown codeblocks.`},
@@ -167,8 +167,11 @@ The output should be a YAML document with the specified structure.
     }
 
     if (isCurrentModelReasoning) {
-      body.reasoning_effort = settings.reasoning
+      body.reasoning_effort = store.settings.reasoning
     }
+    
+    console.log(body.messages[0].content)
+    console.log(body.messages[1].content)
 
     const stream = await openAI.chat.completions.create(body)
 
