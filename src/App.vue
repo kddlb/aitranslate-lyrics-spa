@@ -160,6 +160,7 @@ The output should be a YAML document with the specified structure.
 ` + (store.settings.rhyme ? '- Ensure the translated text accurately reflects the original meaning and tone while rhyming.' : '' ) + `
 - Handle special characters and accents appropriately.
 - Maintain consistency with locale information for accuracy, including adherence to the dialect of both the source and target locales.
+- Make sure the number of lines are the same between the original and the translation.
 - Output as YAML directly, without Markdown codeblocks.`},
         {role: "user", content: YAML.stringify(trr.value)}
       ],
